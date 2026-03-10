@@ -1,53 +1,57 @@
-name: Docker Build and Push to Docker Hub
+name: Build and Push Docker Image
 
 on:
   push:
     branches:
       - main
 
+env:
+  IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/myapp
+
 jobs:
+
   build-image:
+    name: Build Docker Image
     runs-on: ubuntu-latest
-    outputs:
-      image_tag: ${{ steps.set-image-tag.outputs.tag }}
+
     steps:
-      - name: Check out repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Build Docker Image
+        run: |
+          docker build -t $IMAGE_NAME:latest .
 
-      - name: Set image tag output
-        id: set-image-tag
-        run: echo "tag=${{ secrets.DOCKERHUB_USERNAME }}/my-image:latest" >> $GITHUB_OUTPUT
-      
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
+      - name: Save Docker Image
+        run: |
+          docker save $IMAGE_NAME:latest -o image.tar
+
+      - name: Upload Image Artifact
+        uses: actions/upload-artifact@v4
         with:
-          context: .
-          tags: ${{ steps.set-image-tag.outputs.tag }}
-          push: false # Set to false for build job, image kept in runner's build cache
-          cache-from: type=gha,ref=type=gha,ref=${{ github.repository }} # Example GHA caching for faster subsequent builds
-          cache-to: type=gha,ref=type=gha,mode=max,ref=${{ github.repository }}
+          name: docker-image
+          path: image.tar
+
 
   push-image:
+    name: Push Image to DockerHub
     runs-on: ubuntu-latest
-    needs: build-image # Ensures this job runs after the build-image job
+    needs: build-image
+
     steps:
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+      - name: Download Image Artifact
+        uses: actions/download-artifact@v4
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          name: docker-image
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Load Docker Image
+        run: |
+          docker load -i image.tar
 
-      - name: Push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          tags: ${{ needs.build-image.outputs.image_tag }}
-          push: true # Set to true to push to Docker Hub
-          cache-from: type=gha,ref=type=gha,ref=${{ github.repository }} # Required to access image from cache of previous job
-          
+      - name: Login to DockerHub
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Push Docker Image
+        run: |
+          docker push $IMAGE_NAME:latest

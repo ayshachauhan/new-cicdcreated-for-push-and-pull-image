@@ -1,9 +1,8 @@
-name: Build and Push Docker Image
+name: Build and Push Docker Image on dockerhub but on different vm
 
 on:
   push:
-    branches:
-      - main
+  
 
 jobs:
 
@@ -16,11 +15,11 @@ jobs:
 
       - name: Build image
         run: |
-          docker build -t myapp:latest .
+          docker build -t test:latest .
 
       - name: Save image
         run: |
-          docker save myapp:latest -o image.tar
+          docker save test:latest -o image.tar
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -45,7 +44,7 @@ jobs:
 
       - name: Tag image for DockerHub
         run: |
-          docker tag myapp:latest ${{ secrets.DOCKER_USERNAME }}/myapp:latest
+          docker tag test:latest ${{ secrets.DOCKER_USERNAME }}/test:latest
 
       - name: Login to DockerHub
         run: |
@@ -53,4 +52,4 @@ jobs:
 
       - name: Push image
         run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/myapp:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/test:latest

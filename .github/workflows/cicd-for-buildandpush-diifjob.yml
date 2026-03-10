@@ -5,28 +5,24 @@ on:
     branches:
       - main
 
-env:
-  IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/myapp
-
 jobs:
 
   build-image:
-    name: Build Docker Image
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build Docker Image
+      - name: Build image
         run: |
-          docker build -t $IMAGE_NAME:latest .
+          docker build -t myapp:latest .
 
-      - name: Save Docker Image
+      - name: Save image
         run: |
-          docker save $IMAGE_NAME:latest -o image.tar
+          docker save myapp:latest -o image.tar
 
-      - name: Upload Image Artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: docker-image
@@ -34,24 +30,27 @@ jobs:
 
 
   push-image:
-    name: Push Image to DockerHub
     runs-on: ubuntu-latest
     needs: build-image
 
     steps:
-      - name: Download Image Artifact
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: docker-image
 
-      - name: Load Docker Image
+      - name: Load image
         run: |
           docker load -i image.tar
+
+      - name: Tag image for DockerHub
+        run: |
+          docker tag myapp:latest ${{ secrets.DOCKER_USERNAME }}/myapp:latest
 
       - name: Login to DockerHub
         run: |
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-      - name: Push Docker Image
+      - name: Push image
         run: |
-          docker push $IMAGE_NAME:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/myapp:latest

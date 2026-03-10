@@ -1,7 +1,8 @@
 name: push and pull docker image on dockerhub
 
 on:
-  push:
+  workflow_dispatch:
+   
 
 
 jobs:

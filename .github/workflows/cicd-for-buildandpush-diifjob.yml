@@ -29,9 +29,9 @@ jobs:
           path: image.tar
 
       - name: Show Artifact URL in Summary
-         run: |
-           echo "## Artifact Download URL" >> $GITHUB_STEP_SUMMARY
-           echo "Artifact download URL: ${{ steps.upload_artifact.outputs.artifact-url }}" >> $GITHUB_STEP_SUMMARY
+        run: |
+          echo "## Artifact Download URL" >> $GITHUB_STEP_SUMMARY
+          echo "Artifact download URL: ${{ steps.upload_artifact.outputs.artifact-url }}" >> $GITHUB_STEP_SUMMARY
 
 
   push-image:

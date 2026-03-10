@@ -1,0 +1,53 @@
+name: Docker Build and Push to Docker Hub
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.set-image-tag.outputs.tag }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set image tag output
+        id: set-image-tag
+        run: echo "tag=${{ secrets.DOCKERHUB_USERNAME }}/my-image:latest" >> $GITHUB_OUTPUT
+      
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          tags: ${{ steps.set-image-tag.outputs.tag }}
+          push: false # Set to false for build job, image kept in runner's build cache
+          cache-from: type=gha,ref=type=gha,ref=${{ github.repository }} # Example GHA caching for faster subsequent builds
+          cache-to: type=gha,ref=type=gha,mode=max,ref=${{ github.repository }}
+
+  push-image:
+    runs-on: ubuntu-latest
+    needs: build-image # Ensures this job runs after the build-image job
+    steps:
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          tags: ${{ needs.build-image.outputs.image_tag }}
+          push: true # Set to true to push to Docker Hub
+          cache-from: type=gha,ref=type=gha,ref=${{ github.repository }} # Required to access image from cache of previous job
+          

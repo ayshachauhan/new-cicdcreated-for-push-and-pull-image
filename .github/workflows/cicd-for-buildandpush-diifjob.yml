@@ -22,10 +22,16 @@ jobs:
           docker save test:latest -o image.tar
 
       - name: Upload artifact
+        id: upload_artifact
         uses: actions/upload-artifact@v4
         with:
           name: docker-image
           path: image.tar
+
+      - name: Show Artifact URL in Summary
+         run: |
+           echo "## Artifact Download URL" >> $GITHUB_STEP_SUMMARY
+           echo "Artifact download URL: ${{ steps.upload_artifact.outputs.artifact-url }}" >> $GITHUB_STEP_SUMMARY
 
 
   push-image:
